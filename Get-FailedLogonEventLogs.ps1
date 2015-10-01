@@ -43,7 +43,7 @@ function global:Get-DomainController {
 
 $DomainControllers = Get-DomainController
 
-Workflow Get-AccountEvents
+Function Get-AccountEvents
 {
 	param(
 		[string[]]$ServerList,
@@ -52,7 +52,7 @@ Workflow Get-AccountEvents
 	
 	# Workflows: https://technet.microsoft.com/en-us/library/JJ574194.aspx
 	
-	ForEach -Parallel -ThrottleLimit 100 ( $server in $serverList ) {
+	ForEach ( $server in $serverList ) {
 		if ( test-connection $server -quiet ) {
 			Write-Verbose "Checking $server"
 			
@@ -64,13 +64,13 @@ Workflow Get-AccountEvents
 			# 4767: A user account was unlocked
 			# 4771: Kerberos pre-authentication failed
 			# 4776: The domain controller attempted to validate the credentials for an account
-			# $InstanceIDs = @(4625,4771,4738,4767,4776,4740)
-			# $Events = Get-EventLog -Logname Security -After (Get-Date).Date -message "*$UserName*" -PSComputername $server -InstanceID $InstanceIDs -newest 10 -PSCredential $Credentials
+			$InstanceIDs = @(4625,4771,4738,4767,4776,4740)
+			$Events = Get-EventLog -Logname Security -After (Get-Date).Date -message "*$UserName*" -Computername $server -InstanceID $InstanceIDs -newest 10 # -PSCredential $Credentials
 			
-			$StartTime = (Get-Date).Date
-			$StartTimeMiliseconds = New-TimeSpan $StartTime | Select-Object -ExpandProperty TotalMilliseconds
-			$xpathfilter = [string]::Format("*/System[EventID=4625 or EventID=4771 or EventID=4738 or EventID=4767 or EventID=4776 or EventID=4740] and */System/TimeCreated[timediff(@SystemTime) <= {0}]", $StartTimeMiliseconds)
-			$Events = Get-WinEvent -PSComputerName $server -LogName "Security" -FilterXPath $xpathfilter
+			# $StartTime = (Get-Date).Date
+			# $StartTimeMiliseconds = New-TimeSpan $StartTime | Select-Object -ExpandProperty TotalMilliseconds
+			# $xpathfilter = [string]::Format("*/System[EventID=4625 or EventID=4771 or EventID=4738 or EventID=4767 or EventID=4776 or EventID=4740] and */System/TimeCreated[timediff(@SystemTime) <= {0}] and EventData[Data[@Name='TargetUserName']='{1}']]" , $StartTimeMiliseconds,$UserName)
+			# $Events = Get-WinEvent -PSComputerName $server -LogName "Security" -FilterXPath $xpathfilter
 			
 		} else {
 			Write-Verbose "Could not communicate to $server"
